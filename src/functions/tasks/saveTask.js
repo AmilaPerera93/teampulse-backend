@@ -1,13 +1,5 @@
 const { app } = require('@azure/functions');
-const { CosmosClient } = require("@azure/cosmos");
-
-const connectionString = process.env.COSMOS_CONNECTION_STRING;
-let client = null;
-
-async function getContainer() {
-    if (!client) client = new CosmosClient(connectionString);
-    return client.database("TeamPulseDB").container("tasks");
-}
+const { getContainer } = require('../../../shared/cosmos');
 
 app.http('saveTask', {
     methods: ['POST'],
@@ -20,11 +12,14 @@ app.http('saveTask', {
         }
 
         try {
-            const container = await getContainer();
-            // Ensure ID exists
-            task.id = task.id || new Date().getTime().toString();
+            const container = await getContainer('tasks');
             
-            // Upsert (Create or Update)
+            // Automatically add required fields
+            task.id = task.id || new Date().getTime().toString();
+            task.partitionKey = task.assignedTo; // Add partition key
+            task.createdAt = task.createdAt || new Date().toISOString(); // Add timestamp
+            task.date = task.date || new Date().toISOString().split('T')[0]; // Add date if missing
+            
             const { resource } = await container.items.upsert(task);
             return { status: 201, jsonBody: resource };
         } catch (error) {
