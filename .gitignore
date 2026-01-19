@@ -1,0 +1,7 @@
+node_modules/
+.env
+local.settings.json
+bin/
+obj/
+.vscode/
+dist/
